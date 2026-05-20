@@ -1,0 +1,71 @@
+package com.model;
+
+/**
+ * Класс трека (таблица Tracks)
+ */
+public class Track {
+
+    private int id;
+    private String title;
+    private String artist;
+    private String album;
+    private String filePath;
+
+    public Track() {}
+
+    public Track(int id, String title, String artist, String album, String filePath) {
+        this.id = id;
+        this.title = title;
+        this.artist = artist;
+        this.album = album;
+        this.filePath = filePath;
+    }
+
+    // ===== GETTERS / SETTERS =====
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    public String getArtist() {
+        return artist;
+    }
+
+    public void setArtist(String artist) {
+        this.artist = artist;
+    }
+
+    public String getAlbum() {
+        return album;
+    }
+
+    public void setAlbum(String album) {
+        this.album = album;
+    }
+
+    public String getFilePath() {
+        return filePath;
+    }
+
+    public void setFilePath(String filePath) {
+        this.filePath = filePath;
+    }
+
+    // ===== ВОТ ЭТО ГЛАВНОЕ ИСПРАВЛЕНИЕ =====
+    @Override
+    public String toString() {
+        return artist + " - " + title;
+    }
+}
