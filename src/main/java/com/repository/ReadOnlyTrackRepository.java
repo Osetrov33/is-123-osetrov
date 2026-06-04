@@ -18,6 +18,11 @@ public class ReadOnlyTrackRepository implements TrackRepository {
     }
 
     @Override
+    public void updateTrack(Track track) {
+        throw new UnsupportedOperationException("Repository is read only");
+    }
+
+    @Override
     public void clearTracks() {
         throw new UnsupportedOperationException("Репозиторий открыт только для чтения");
     }

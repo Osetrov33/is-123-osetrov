@@ -366,6 +366,48 @@
     -fx-background-color: rgba(255,255,255,0.14);
 }
 
+.metadata-dialog {
+    -fx-background-color: linear-gradient(to bottom right, #07101a, #0d1826 48%, #171225 100%);
+    -fx-background-radius: 26;
+    -fx-border-color: rgba(255,255,255,0.12);
+    -fx-border-radius: 26;
+    -fx-padding: 0;
+}
+
+.metadata-dialog > .header-panel {
+    -fx-background-color: linear-gradient(to right, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+    -fx-background-radius: 26 26 0 0;
+    -fx-padding: 22 24 14 24;
+}
+
+.metadata-dialog > .header-panel .label {
+    -fx-text-fill: #f8fbff;
+    -fx-font-size: 22px;
+    -fx-font-weight: 900;
+}
+
+.metadata-dialog > .content {
+    -fx-padding: 18 24 8 24;
+}
+
+.metadata-dialog > .button-bar > .container {
+    -fx-padding: 12 24 24 24;
+}
+
+.metadata-form {
+    -fx-background-color: linear-gradient(to bottom right, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+    -fx-background-radius: 22;
+    -fx-border-color: rgba(255,255,255,0.08);
+    -fx-border-radius: 22;
+    -fx-padding: 18;
+}
+
+.metadata-label {
+    -fx-text-fill: #8fa4be;
+    -fx-font-size: 12px;
+    -fx-font-weight: 800;
+}
+
 .transport-button,
 .transport-primary,
 .mini-icon-button {

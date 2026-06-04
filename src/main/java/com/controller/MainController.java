@@ -17,7 +17,10 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Parent;
 import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonBar;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.ScrollPane;
@@ -25,7 +28,10 @@ import javafx.scene.control.Slider;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.effect.GaussianBlur;
+import javafx.scene.input.Dragboard;
+import javafx.scene.input.TransferMode;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -41,6 +47,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Random;
 import java.util.stream.Collectors;
 
@@ -99,6 +106,7 @@ public class MainController {
     private MediaPlayer mediaPlayer;
     private Track selectedTrack;
     private Track currentTrack;
+    private List<Track> libraryTracks = new ArrayList<>();
     private List<Track> displayedTracks = new ArrayList<>();
     private List<Track> currentQueue = new ArrayList<>();
     private int currentQueueIndex = -1;
@@ -107,6 +115,7 @@ public class MainController {
     private boolean refreshingLibrary = false;
     private boolean shuffleEnabled = false;
     private boolean repeatEnabled = false;
+    private boolean trackPageVisible = false;
 
     private double dragOffsetX;
     private double dragOffsetY;
@@ -146,6 +155,7 @@ public class MainController {
 
         root.getChildren().addAll(ambientLayer, shell);
         initParallax();
+        initDragAndDrop();
     }
 
     private StackPane createAmbientLayer() {
@@ -431,6 +441,8 @@ public class MainController {
     }
 
     private void showLibraryView() {
+        trackPageVisible = false;
+
         VBox page = new VBox(20);
         page.getStyleClass().add("content-pane");
         page.setPadding(new Insets(26));
@@ -592,7 +604,7 @@ public class MainController {
             glowAnimation = glowPulse;
         }
 
-        visualizerTimeline = new Timeline(new KeyFrame(Duration.millis(220), e -> updateVisualizerBars()));
+        visualizerTimeline = new Timeline(new KeyFrame(Duration.millis(360), e -> updateVisualizerBars()));
         visualizerTimeline.setCycleCount(Animation.INDEFINITE);
         visualizerTimeline.play();
     }
@@ -606,6 +618,7 @@ public class MainController {
     }
 
     private void showTrackPage(Track track) {
+        trackPageVisible = true;
         selectedTrack = track;
 
         VBox page = new VBox(20);
@@ -642,7 +655,11 @@ public class MainController {
             favoriteButton.setText(favoriteDAO.isFavorite(currentUser.getId(), track.getId()) ? "Убрать из избранного" : "В избранное");
         });
 
-        actionRow.getChildren().addAll(playButton, favoriteButton);
+        Button editButton = new Button("Edit metadata");
+        editButton.getStyleClass().add("glass-button");
+        editButton.setOnAction(e -> showEditTrackDialog(track));
+
+        actionRow.getChildren().addAll(playButton, favoriteButton, editButton);
         hero.getChildren().addAll(title, meta, rating, actionRow);
 
         HBox body = new HBox(20);
@@ -708,6 +725,7 @@ public class MainController {
         showLibraryView();
         searchField.setText(currentQuery);
 
+        libraryTracks = trackRepository.getAllTracks();
         displayedTracks = buildDisplayedTracks();
         updateHero();
 
@@ -715,7 +733,9 @@ public class MainController {
         if (displayedTracks.isEmpty()) {
             trackContainer.getChildren().add(createEmptyState());
         } else {
-            displayedTracks.forEach(track -> trackContainer.getChildren().add(createTrackCard(track)));
+            for (int i = 0; i < displayedTracks.size(); i++) {
+                trackContainer.getChildren().add(createTrackCard(displayedTracks.get(i), i));
+            }
         }
 
         if (selectedTrack == null && !displayedTracks.isEmpty()) {
@@ -728,7 +748,7 @@ public class MainController {
     }
 
     private List<Track> buildDisplayedTracks() {
-        List<Track> tracks = trackRepository.getAllTracks();
+        List<Track> tracks = new ArrayList<>(libraryTracks);
         String query = searchField == null ? "" : searchField.getText();
 
         if (query != null && !query.isBlank()) {
@@ -770,13 +790,13 @@ public class MainController {
         return emptyState;
     }
 
-    private Parent createTrackCard(Track track) {
+    private Parent createTrackCard(Track track, int index) {
         HBox card = new HBox(16);
         card.getStyleClass().add("track-card");
         card.setAlignment(Pos.CENTER_LEFT);
         card.setPadding(new Insets(18));
 
-        Label indexBadge = new Label(String.format("%02d", displayedTracks.indexOf(track) + 1));
+        Label indexBadge = new Label(String.format("%02d", index + 1));
         indexBadge.getStyleClass().add("index-badge");
 
         VBox meta = new VBox(6);
@@ -787,8 +807,9 @@ public class MainController {
         meta.getChildren().addAll(title, subtitle);
         HBox.setHgrow(meta, Priority.ALWAYS);
 
-        Label status = new Label(favoriteDAO.isFavorite(currentUser.getId(), track.getId()) ? "Liked" : "Library");
-        status.getStyleClass().add(favoriteDAO.isFavorite(currentUser.getId(), track.getId()) ? "liked-pill" : "library-pill");
+        boolean favorite = favoriteDAO.isFavorite(currentUser.getId(), track.getId());
+        Label status = new Label(favorite ? "Liked" : "Library");
+        status.getStyleClass().add(favorite ? "liked-pill" : "library-pill");
 
         Button playButton = new Button("▶");
         playButton.getStyleClass().add("mini-icon-button");
@@ -798,14 +819,121 @@ public class MainController {
         openButton.getStyleClass().add("glass-button");
         openButton.setOnAction(e -> showTrackPage(track));
 
+        Button editButton = new Button("Edit");
+        editButton.getStyleClass().add("glass-button");
+        editButton.setOnAction(e -> showEditTrackDialog(track));
+
         card.setOnMouseClicked(e -> {
             if (!(e.getTarget() instanceof Button)) {
                 showTrackPage(track);
             }
         });
 
-        card.getChildren().addAll(indexBadge, meta, status, playButton, openButton);
+        card.getChildren().addAll(indexBadge, meta, status, playButton, openButton, editButton);
         return card;
+    }
+
+    private void showEditTrackDialog(Track track) {
+        Dialog<Track> dialog = new Dialog<>();
+        dialog.initOwner(stage);
+        dialog.setTitle("Edit track metadata");
+        dialog.setHeaderText("Track metadata");
+
+        ButtonType saveButtonType = new ButtonType("Save", ButtonBar.ButtonData.OK_DONE);
+        ButtonType cancelButtonType = new ButtonType("Cancel", ButtonBar.ButtonData.CANCEL_CLOSE);
+        dialog.getDialogPane().getButtonTypes().addAll(saveButtonType, cancelButtonType);
+        dialog.getDialogPane().getStyleClass().add("metadata-dialog");
+        dialog.getDialogPane().getStylesheets().add(
+                getClass().getResource("/style/styles.css").toExternalForm()
+        );
+
+        TextField titleField = new TextField(track.getTitle());
+        TextField artistField = new TextField(track.getArtist());
+        TextField albumField = new TextField(track.getAlbum());
+        titleField.setPromptText("Title");
+        artistField.setPromptText("Artist");
+        albumField.setPromptText("Album");
+
+        GridPane form = new GridPane();
+        form.getStyleClass().add("metadata-form");
+        form.setHgap(10);
+        form.setVgap(10);
+
+        Label titleLabel = createMetadataDialogLabel("Title");
+        Label artistLabel = createMetadataDialogLabel("Artist");
+        Label albumLabel = createMetadataDialogLabel("Album");
+        form.addRow(0, titleLabel, titleField);
+        form.addRow(1, artistLabel, artistField);
+        form.addRow(2, albumLabel, albumField);
+
+        dialog.getDialogPane().setContent(form);
+        Button saveButton = (Button) dialog.getDialogPane().lookupButton(saveButtonType);
+        saveButton.getStyleClass().add("accent-button");
+        Button cancelButton = (Button) dialog.getDialogPane().lookupButton(cancelButtonType);
+        cancelButton.getStyleClass().add("glass-button");
+
+        dialog.setResultConverter(button -> {
+            if (button != saveButtonType) {
+                return null;
+            }
+
+            String title = titleField.getText() == null ? "" : titleField.getText().trim();
+            if (title.isEmpty()) {
+                showError("Title cannot be empty.");
+                return null;
+            }
+
+            Track updatedTrack = new Track(
+                    track.getId(),
+                    title,
+                    normalizeMetadata(artistField.getText()),
+                    normalizeMetadata(albumField.getText()),
+                    track.getFilePath()
+            );
+            return updatedTrack;
+        });
+
+        Optional<Track> result = dialog.showAndWait();
+        result.ifPresent(this::saveTrackMetadata);
+    }
+
+    private Label createMetadataDialogLabel(String text) {
+        Label label = new Label(text);
+        label.getStyleClass().add("metadata-label");
+        return label;
+    }
+
+    private void saveTrackMetadata(Track updatedTrack) {
+        trackRepository.updateTrack(updatedTrack);
+        selectedTrack = updatedTrack;
+
+        if (currentTrack != null && currentTrack.getId() == updatedTrack.getId()) {
+            currentTrack = updatedTrack;
+            updateNowPlaying();
+        }
+
+        libraryTracks = trackRepository.getAllTracks();
+        displayedTracks = buildDisplayedTracks();
+        updateHero();
+        updateSpotlight();
+        refreshQueueView();
+
+        if (trackPageVisible) {
+            showTrackPage(updatedTrack);
+        } else if (trackContainer != null) {
+            trackContainer.getChildren().clear();
+            if (displayedTracks.isEmpty()) {
+                trackContainer.getChildren().add(createEmptyState());
+            } else {
+                for (int i = 0; i < displayedTracks.size(); i++) {
+                    trackContainer.getChildren().add(createTrackCard(displayedTracks.get(i), i));
+                }
+            }
+        }
+    }
+
+    private String normalizeMetadata(String value) {
+        return value == null || value.isBlank() ? "Unknown" : value.trim();
     }
 
     private void submitReview() {
@@ -854,8 +982,8 @@ public class MainController {
             return;
         }
 
-        int totalCount = trackRepository.getAllTracks().size();
-        long favoriteCount = trackRepository.getAllTracks().stream()
+        int totalCount = libraryTracks.size();
+        long favoriteCount = libraryTracks.stream()
                 .filter(track -> favoriteDAO.isFavorite(currentUser.getId(), track.getId()))
                 .count();
 
@@ -1051,7 +1179,9 @@ public class MainController {
                 if (displayedTracks.isEmpty()) {
                     trackContainer.getChildren().add(createEmptyState());
                 } else {
-                    displayedTracks.forEach(item -> trackContainer.getChildren().add(createTrackCard(item)));
+                    for (int i = 0; i < displayedTracks.size(); i++) {
+                        trackContainer.getChildren().add(createTrackCard(displayedTracks.get(i), i));
+                    }
                 }
             }
         } catch (Exception ex) {
@@ -1069,28 +1199,80 @@ public class MainController {
         }
     }
 
-    private void scanMusic(File folder) {
+    private void initDragAndDrop() {
+        root.setOnDragOver(event -> {
+            Dragboard dragboard = event.getDragboard();
+            if (dragboard.hasFiles() && dragboard.getFiles().stream().anyMatch(this::isSupportedDropItem)) {
+                event.acceptTransferModes(TransferMode.COPY);
+            }
+            event.consume();
+        });
+
+        root.setOnDragDropped(event -> {
+            Dragboard dragboard = event.getDragboard();
+            boolean imported = false;
+
+            if (dragboard.hasFiles()) {
+                for (File file : dragboard.getFiles()) {
+                    imported = importDroppedItem(file) || imported;
+                }
+            }
+
+            if (imported) {
+                refreshLibrary();
+            }
+
+            event.setDropCompleted(imported);
+            event.consume();
+        });
+    }
+
+    private boolean importDroppedItem(File file) {
+        if (file == null) {
+            return false;
+        }
+
+        if (file.isDirectory()) {
+            return scanMusic(file);
+        }
+
+        return importAudioFile(file);
+    }
+
+    private boolean isSupportedDropItem(File file) {
+        return file != null && (file.isDirectory() || isMp3(file));
+    }
+
+    private boolean scanMusic(File folder) {
         File[] files = folder.listFiles();
         if (files == null) {
-            return;
+            return false;
         }
 
+        boolean imported = false;
         for (File file : files) {
             if (file.isDirectory()) {
-                scanMusic(file);
+                imported = scanMusic(file) || imported;
                 continue;
             }
 
-            if (!file.getName().toLowerCase(Locale.ROOT).endsWith(".mp3")) {
-                continue;
-            }
-
-            if (trackRepository.existsByFilePath(file.getAbsolutePath())) {
-                continue;
-            }
-
-            trackRepository.addTrack(metadataReader.read(file));
+            imported = importAudioFile(file) || imported;
         }
+
+        return imported;
+    }
+
+    private boolean importAudioFile(File file) {
+        if (!isMp3(file) || trackRepository.existsByFilePath(file.getAbsolutePath())) {
+            return false;
+        }
+
+        trackRepository.addTrack(metadataReader.read(file));
+        return true;
+    }
+
+    private boolean isMp3(File file) {
+        return file != null && file.isFile() && file.getName().toLowerCase(Locale.ROOT).endsWith(".mp3");
     }
 
     private int findTrackIndex(List<Track> tracks, Track target) {

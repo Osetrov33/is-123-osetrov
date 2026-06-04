@@ -21,6 +21,12 @@ public class CachedTrackRepository implements TrackRepository {
     }
 
     @Override
+    public void updateTrack(Track track) {
+        source.updateTrack(track);
+        cache = null;
+    }
+
+    @Override
     public void clearTracks() {
         source.clearTracks();
         cache = null;

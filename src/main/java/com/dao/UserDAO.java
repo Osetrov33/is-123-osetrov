@@ -2,7 +2,7 @@ package com.dao;
 
 
 import com.model.User;
-import com.example.musicplayer.util.DatabaseUtil;
+import com.util.DatabaseUtil;
 import org.mindrot.jbcrypt.BCrypt;
 
 import java.sql.Connection;

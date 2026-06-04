@@ -1,7 +1,7 @@
 package com.dao;
 
 import com.model.Track;
-import com.example.musicplayer.util.DatabaseUtil;
+import com.util.DatabaseUtil;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -25,6 +25,24 @@ public class TrackDAO {
             stmt.setString(2, track.getArtist());
             stmt.setString(3, track.getAlbum());
             stmt.setString(4, track.getFilePath());
+
+            stmt.executeUpdate();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void updateTrack(Track track) {
+        String sql = "UPDATE Tracks SET title = ?, artist = ?, album = ? WHERE id = ?";
+
+        try (Connection conn = DatabaseUtil.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, track.getTitle());
+            stmt.setString(2, track.getArtist());
+            stmt.setString(3, track.getAlbum());
+            stmt.setInt(4, track.getId());
 
             stmt.executeUpdate();
 

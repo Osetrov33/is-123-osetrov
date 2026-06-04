@@ -23,6 +23,11 @@ public class SqlTrackRepository implements TrackRepository {
     }
 
     @Override
+    public void updateTrack(Track track) {
+        trackDAO.updateTrack(track);
+    }
+
+    @Override
     public void clearTracks() {
         trackDAO.clearTracks();
     }

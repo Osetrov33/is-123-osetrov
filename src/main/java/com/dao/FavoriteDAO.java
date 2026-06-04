@@ -1,6 +1,6 @@
 package com.dao;
 
-import com.example.musicplayer.util.DatabaseUtil;
+import com.util.DatabaseUtil;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;

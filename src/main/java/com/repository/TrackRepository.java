@@ -8,6 +8,8 @@ public interface TrackRepository {
 
     void addTrack(Track track);
 
+    void updateTrack(Track track);
+
     void clearTracks();
 
     List<Track> getAllTracks();

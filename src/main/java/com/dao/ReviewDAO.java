@@ -1,7 +1,7 @@
 package com.dao;
 
 import com.model.Review;
-import com.example.musicplayer.util.DatabaseUtil;
+import com.util.DatabaseUtil;
 
 import java.sql.*;
 import java.util.ArrayList;
